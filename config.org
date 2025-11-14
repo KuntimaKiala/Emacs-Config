@@ -1,1 +1,371 @@
-../../../.config/emacs/config.org
+#+AUTHOR: Kuntima K.
+#+DESCRIPTION: My personal Emacs config
+#+STARTUP: showeverything
+#+OPTIONS: toc:2
+
+* PROGRAMS TO LOAD
+
+** PACKAGE MANAGEMENT (MELPA + GNU ELPA)
+#+begin_src emacs-lisp
+(require 'package)
+(setq package-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("gnu"   . "https://elpa.gnu.org/packages/")
+        ("org"   . "https://orgmode.org/elpa/")))
+;;(setq package-enable-at-startup nil) ;; don’t load everything
+(package-initialize)
+
+(unless package-archive-contents
+  (package-refresh-contents))
+
+;; Bootstrap use-package
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
+
+(setq use-package-always-ensure t
+      use-package-always-defer t) ;; lazy load everything
+#+end_src
+
+** GENERAL SETTINGS
+#+begin_src emacs-lisp
+  (setq inhibit-startup-message t)    ;; no splash
+  (column-number-mode)
+  (global-display-line-numbers-mode 1)
+  (recentf-mode 1)
+
+  
+#+end_src
+
+** HELPER PACKAGES
+#+begin_src emacs-lisp
+    (use-package try
+      :ensure t)
+    (use-package which-key
+      :ensure t
+      :config (which-key-mode))
+
+   (require 'which-key)
+  (which-key-mode 1)
+
+  ;; Optional: show help faster
+  (setq which-key-idle-delay 0.5)
+
+  (global-eldoc-mode 1)
+    (use-package company
+      :hook (after-init . global-company-mode))
+#+end_src
+
+** CUSTOM SET VARIABLES
+#+begin_src emacs-lisp
+          (custom-set-variables
+         ;; custom-set-variables was added by Custom.
+         ;; If you edit it by hand, you could mess it up, so be careful.
+         ;; Your init file should contain only one such instance.
+         ;; If there is more than one, they won't work right.
+         '(package-selected-packages
+           '(auctex iedit auto-complete-c-headers org-bullets dracula-theme solarized-theme markdown-mode magit levenshtein flycheck-pyflakes cmake-mode modern-cpp-font-lock auto-complete yasnippet-snippets pyvenv use-package pyenv-mode py-yapf jedi elpy company-jedi))
+         '(safe-local-variable-values
+           '((eval setq-local flycheck-clang-include-path
+                   (list
+                    (concat root "include")
+                    (concat root "src"))))))
+        (custom-set-faces
+         ;; custom-set-faces was added by Custom.
+         ;; If you edit it by hand, you could mess it up, so be careful.
+         ;; Your init file should contain only one such instance.
+         ;; If there is more than one, they won't work right.
+         )
+
+      (require 'auto-complete-config)
+
+      (require 'yasnippet)
+      (yas-global-mode)
+
+
+      (use-package auto-complete
+        :ensure t
+        :init
+        (progn
+          (ac-config-default)
+          (global-auto-complete-mode t)
+          ))
+
+
+      (use-package pdf-tools
+        :ensure t
+        :config
+        (pdf-tools-install))
+
+    (use-package auctex
+      :ensure t
+      :defer t)
+
+  
+#+end_src
+
+** PYTHON
+#+begin_src emacs-lisp
+(use-package elpy
+  :commands elpy-enable)
+
+(use-package jedi
+  :hook (python-mode . jedi:setup)
+  :config (setq jedi:complete-on-dot t))
+
+(use-package company-jedi
+  :after company
+  :hook (python-mode . (lambda ()
+                         (add-to-list 'company-backends 'company-jedi))))
+#+end_src
+
+#+RESULTS:
+| (lambda nil (add-to-list 'company-backends 'company-jedi)) | (lambda nil (if (member 'company-jedi company-backends) company-backends (setq company-backends (cons 'company-jedi company-backends)))) | jedi:setup |
+
+** CONDA ENVIRONMENTS
+#+begin_src emacs-lisp
+
+(use-package pyvenv
+  :config
+  (setenv "WORKON_HOME" "/media/kuntima/SSD-Kuntima2/miniconda3/envs/")
+  (pyvenv-mode 1)
+
+  ;; Optional helper functions to quickly switch environments
+  (defun pyvenv-activate-cs285 () (interactive) (pyvenv-activate "cs285"))
+  (defun pyvenv-activate-d2l () (interactive) (pyvenv-activate "d2l"))
+  (defun pyvenv-activate-ptorch () (interactive) (pyvenv-activate "ptorch"))
+  (defun pyvenv-activate-py () (interactive) (pyvenv-activate "py"))
+  (defun pyvenv-activate-tf () (interactive) (pyvenv-activate "tf"))
+  (defun pyvenv-activate-universe () (interactive) (pyvenv-activate "universe")))
+#+end_src
+
+** C / C++
+#+begin_src emacs-lisp
+          ;; Modern C++ syntax highlighting
+              (use-package modern-cpp-font-lock
+                :ensure t
+                :hook (c++-mode . modern-cpp-font-lock-mode))
+
+          ;; Company (completion)
+              (use-package company
+                :ensure  t
+                :hook (after-init . global-company-mode)
+                :config
+                (setq company-idle-delay 0.2
+                      company-minimum-prefix-length 1))
+
+      ;; Company backend for C headers
+      ;; -----------------------------
+      (use-package company-c-headers
+        :ensure t
+        :after company
+        :config
+        (add-to-list 'company-backends 'company-c-headers)
+        ;; Set system include paths for GCC
+        (setq company-c-headers-path-system
+              '("/usr/include/c++/11"
+                "/usr/include/x86_64-linux-gnu/c++/11"
+                "/usr/include")))
+
+
+              (use-package auto-complete
+                :ensure t
+                :config
+                (ac-config-default)
+                (global-auto-complete-mode t))
+
+              (use-package flycheck
+                :ensure t
+                :hook (after-init . global-flycheck-mode)
+                :config
+                (setq flycheck-gcc-language-standard "c++17"
+                      flycheck-gcc-include-path '("/usr/include"
+                                                  "/usr/local/include")))
+
+              (global-flycheck-mode)
+              (require 'flycheck-pyflakes) 
+
+              (use-package cmake-ide
+                :commands (cmake-ide-compile cmake-ide-setup)
+                :config
+                (setq cmake-ide-flags-c++ '("-std=c++17")))
+
+            (global-set-key (kbd "<f5>") 'compile)
+              (use-package cuda-mode
+                :mode "\\.cu\\'")
+
+
+      (add-hook 'after-init-hook 'global-company-mode)
+      ;; Snippets
+(use-package yasnippet
+  :ensure t
+  :config
+  (yas-global-mode 1))
+
+
+
+#+end_src
+
+#+RESULTS:
+| global-flycheck-mode | global-company-mode | org-persist-load-all | tramp-register-archive-autoload-file-name-handler | table--make-cell-map |
+
+** ORG MODE
+#+begin_src emacs-lisp
+      (use-package org
+        :mode ("\\.org\\'" . org-mode)
+        :hook (org-mode . (lambda () (org-indent-mode)))
+        :config
+        (setq org-ellipsis " ▾"
+              org-hide-emphasis-markers t))
+
+      (use-package org-bullets
+        :after org
+        :hook (org-mode . org-bullets-mode)
+        :custom
+        (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+
+        (use-package org
+  :ensure nil ; do not try to install it as it is built-in
+  :config
+  (setq org-M-RET-may-split-line '((default . nil)))
+  (setq org-insert-heading-respect-content t)
+  (setq org-log-done 'time)
+  (setq org-log-into-drawer t)
+
+  (setq org-directory "~/.config/emacs/")
+  (setq org-agenda-files (list org-directory))
+
+  ;; Learn about the ! and more by reading the relevant section of the
+  ;; Org manual.  Evaluate: (info "(org) Tracking TODO state changes")
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "WAIT(w!)" "|" "CANCEL(c!)" "DONE(d!)"))))
+
+
+  (defun my/org-choose-todo ()
+    "Prompt for a TODO state and set it for the current headline."
+    (interactive)
+    (let ((choice (read-char-choice
+                   "Choose TODO state: (t) TODO, (w) WAIT, (c) CANCEL, (d) DONE"
+                   '(?t ?w ?c ?d))))
+     (cond
+      ((eq choice ?t) (org-todo "TODO"))
+      ((eq choice ?w) (org-todo "WAIT"))
+      ((eq choice ?c) (org-todo "CANCEL"))
+      ((eq choice ?d) (org-todo "DONE")))))
+
+  ;; Bind it to a key
+  (global-set-key (kbd "C-c c t") 'my/org-choose-todo)
+
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((python .t)))
+  (setq org-babel-python-command "python3")
+#+end_src
+
+#+RESULTS:
+: python3
+** Projectile
+#+begin_src  emacs-lisp
+  
+
+  (projectile-mode +1)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+#+end_src
+
+#+RESULTS:
+: projectile-command-map
+
+** Treemacs
+#+begin_src emacs-lisp
+    (use-package treemacs
+      :demand t
+      :ensure t
+      :bind
+      (:map global-map
+            ([f8] . treemacs)
+            ("C-<f8>" . treemacs-select-window))
+      :config
+       (setq treemacs-is-never-other-window t))
+#+end_src
+
+#+RESULTS:
+: treemacs-select-window
+
+** LATEX
+#+begin_src emacs-lisp
+(use-package auctex
+  :mode ("\\.tex\\'" . LaTeX-mode)
+  :hook ((LaTeX-mode . prettify-symbols-mode)
+         (LaTeX-mode . flyspell-mode)))
+#+end_src
+
+** THEMES
+#+begin_src emacs-lisp
+    (use-package doom-themes
+      :demand t
+      :ensure t
+      :config
+      (setq doom-themes-enable-bold t
+            doom-themes-enable-italic t)
+      (load-theme 'doom-one t)
+      (setq custom-enabled-themes '(doom-one)) ;; makes it stick
+      (doom-themes-visual-bell-config)
+      (doom-themes-org-config))
+
+ 
+#+end_src
+
+** PATH FIX
+#+begin_src emacs-lisp
+(defun set-exec-path-from-shell-PATH ()
+  "Sync exec-path with shell PATH."
+  (let ((path-from-shell
+         (string-trim (shell-command-to-string "$SHELL -l -c 'echo $PATH'"))))
+    (setenv "PATH" path-from-shell)
+    (setq exec-path (split-string path-from-shell path-separator))))
+(set-exec-path-from-shell-PATH)
+#+end_src
+
+#+RESULTS:
+| /home/kuntima/.local/bin | /usr/local/sbin | /usr/local/bin | /usr/sbin | /usr/bin | /sbin | /bin | /usr/games | /usr/local/games | /snap/bin |
+
+** NOT ORGANIZE
+#+BEGIN_SRC emacs-lisp
+
+  ;; installing some stuff
+  ;; list the packages you want // some of those I already have
+  (defvar package-list)
+  (setq package-list '(auto-complete auto-complete-c-headers cmake-mode cmake-ide company company-irony 
+                             company-irony-c-headers  flycheck conda 
+                             flycheck-irony flycheck-pyflakes
+                             let-alist levenshtein markdown-mode pkg-info 
+                             popup  seq solarized-theme dracula-theme yasnippet))
+  ;; fetch the list of packages available
+  (unless package-archive-contents
+    (package-refresh-contents))
+  ;; install the missing packages
+  (dolist (package package-list)
+    (unless (package-installed-p package)
+      (package-install package)))
+#+END_SRC
+
+
+** KEYBINDS
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-c k a") 'org-agenda)
+  (global-set-key (kbd "C-c k c") 'calendar)
+  (global-set-key (kbd "C-t") 'term)
+#+END_SRC
+
+#+RESULTS:
+: term
+
+** AGENDA PATH
+#+BEGIN_SRC emacs-lisp
+  (setq org-agenda-files '("~/.config/emacs/"))
+#+END_SRC
+
+#+RESULTS:
+| ~/.config/emacs/ |
