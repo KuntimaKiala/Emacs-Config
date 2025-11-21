@@ -168,134 +168,85 @@
 
   
 #+end_src
-** ORG MODE
-#+begin_src emacs-lisp
-      (use-package org
-        :mode ("\\.org\\'" . org-mode)
-        :hook (org-mode . (lambda () (org-indent-mode)))
-        :config
-        (setq org-ellipsis " ▾"
-              org-hide-emphasis-markers t)
-        (setq org-M-RET-may-split-line '((default . nil)))
-        (setq org-insert-heading-respect-content t)
-        (setq org-log-done 'time)
-        (setq org-log-into-drawer t)
-
-        (setq org-directory "~/.config/emacs/")
-        (setq org-agenda-files (list org-directory))
-
-       ;; Learn about the ! and more by reading the relevant section of the
-       ;; Org manual.  Evaluate: (info "(org) Tracking TODO state changes")
-       (setq org-todo-keywords
-         '((sequence "TODO(t)" "WAIT(w!)" "|" "CANCEL(c!)" "DONE(d!)"))))
-
-      (use-package org-bullets
-        :after org
-        :hook (org-mode . org-bullets-mode)
-        :custom
-        (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
-
-     (defun my/org-choose-todo ()
-       "Prompt for a TODO state and set it for the current headline."
-       (interactive)
-       (let ((choice (read-char-choice
-                      "Choose TODO state: (t) TODO, (w) WAIT, (c) CANCEL, (d) DONE"
-                      '(?t ?w ?c ?d))))
-         (cond
-          ((eq choice ?t) (org-todo "TODO"))
-          ((eq choice ?w) (org-todo "WAIT"))
-          ((eq choice ?c) (org-todo "CANCEL"))
-          ((eq choice ?d) (org-todo "DONE")))))
-
-  ;; Bind it to a key
-  (global-set-key (kbd "C-c c t") 'my/org-choose-todo)
-
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((python .t)))
-  (setq org-babel-python-command "python3")
-#+end_src
-
-#+RESULTS:
-: python3
 ** CODING
 *** GENERIC
 #+begin_src emacs-lisp
-  (global-set-key (kbd "<f5>") 'compile)
+    (global-set-key (kbd "<f5>") 'compile)
 
-  ;; auto-complete must be first if not it break stuffs for reason
-  (use-package auto-complete
+    ;; auto-complete must be first if not it break stuffs for reason
+    (use-package auto-complete
+        ;;:demand t
+        :ensure t
+        :config
+        (ac-config-default)
+        (global-auto-complete-mode t))
+
+    (use-package flycheck
       :demand t
       :ensure t
+      :init
+      (global-flycheck-mode t)
       :config
-      (ac-config-default)
-      (global-auto-complete-mode t))
+      (setq flycheck-gcc-language-standard "c++17"
+            flycheck-gcc-include-path '("/usr/include"
+                                        "/usr/local/include"
+                                        "/usr/include/c++/11"
+                                        "/usr/include/x86_64-linux-gnu/c++/11"
+                                        )))
 
-  (use-package flycheck
-    :demand t
-    :ensure t
-    :init
-    (global-flycheck-mode t)
-    :config
-    (setq flycheck-gcc-language-standard "c++17"
-          flycheck-gcc-include-path '("/usr/include"
-                                      "/usr/local/include"
-                                      "/usr/include/c++/11"
-                                      "/usr/include/x86_64-linux-gnu/c++/11"
-                                      )))
-
-    (require 'flycheck-pyflakes) 
-    ;; Company (completion)
-    (use-package company
-     ;; :demand t
-     :ensure  t
-     :hook (after-init . global-company-mode)
-     :config
-     (setq company-idle-delay 0.2
-            company-minimum-prefix-length 1)
-     (global-company-mode t)
-     )
+      (require 'flycheck-pyflakes) 
+      ;; Company (completion)
+      (use-package company
+       :demand t
+       :ensure  t
+       :hook (after-init . global-company-mode)
+       :config
+       (setq company-idle-delay 0.2
+              company-minimum-prefix-length 1)
+       (global-company-mode t))
 
 
-    (add-hook 'after-init-hook 'global-company-mode)
+      (add-hook 'after-init-hook 'global-company-mode)
 
-  ;; Snippets
+    ;; Snippets
 
-  (use-package yasnippet
-  ;;  :demand t
-    :ensure t
-    :init
-    (yas-global-mode 1)
-    :config
-    (add-to-list 'load-path
-            "~/.config/emacs/plugins/yasnippet"))
-  ;; magit
-  ;; key bindings
-  (global-set-key (kbd "C-x g") 'magit-status)
-  ;;install magit
-  (use-package magit
-    :ensure t
-    :bind (("C-x g" . magit-status)))
+    (use-package yasnippet
+      :demand t
+      :ensure t
+      :init
+      (yas-global-mode 1)
+      :config
+     (add-to-list 'load-path
+                  "~/.config/emacs/plugins/yasnippet"))
+    ;; magit
+    ;; key bindings
+    (global-set-key (kbd "C-x g") 'magit-status)
+    ;;install magit
+    (use-package magit
+      :ensure t
+      :bind (("C-x g" . magit-status)))
 
-  (use-package lsp-mode
-   ;;  :demand t
-     :ensure t
-     :init
+    (use-package lsp-mode
+      :ensure t
+      :init
      (setq lsp-keymap-prefix "C-c l")
      :hook
-     (((c++-mode c-mode python-mode cmake-mode) . lsp)
-      (lsp . lsp-deferred)
-      (lsp-mode . lsp-enable-which-key-integration))
+     ((c++-mode . lsp)
+     (c-mode . lsp)
+     (python-mode . lsp)
+     (cmake-mode . lsp))
      :commands lsp lsp-deferred)
 
-   ;; for fancy sideline, popup documentation, VScode-like
-  (use-package lsp-ui :commands lsp-ui-mode)
-  ;; provides on type completion alternative of xref-apropos using ivy
-  (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
-  ;; for various tree based UI controls
-  (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+     ;; for fancy sideline, popup documentation, VScode-like
+    (use-package lsp-ui :commands lsp-ui-mode)
+    ;; provides on type completion alternative of xref-apropos using ivy
+    (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+    ;; for various tree based UI controls
+    (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
 
 #+end_src
+
+#+RESULTS:
 
 *** CONDA ENVIRONMENTS
 #+begin_src emacs-lisp
@@ -346,88 +297,139 @@
 
 *** C/C++
 #+begin_src emacs-lisp
-               ;; Modern C++ syntax highlighting
-                  (use-package modern-cpp-font-lock
-                     :ensure t
-                     :config
-                     (modern-c++-font-lock-global-mode)
-                     :hook (c++-mode . modern-cpp-font-lock-mode))
+   ;; Modern C++ syntax highlighting
+      (use-package modern-cpp-font-lock
+         :ensure t
+         :config
+         (modern-c++-font-lock-global-mode)
+         :hook (c++-mode . modern-cpp-font-lock-mode))
 
-                 ;; eglot
-                (use-package eglot
-                  :ensure t
-                  :demand t
-                  :config
-                  ;; Use clangd 21.1.0
-                  (add-to-list 'eglot-server-programs
-                  '((c++-mode c-mode) "/usr/bin/clangd"))
-                  :hook
-                  ((c++-mode-hook . eglot-ensure)
-                   (c-mode-hook . eglot-ensure))
-                  :bind
-                  ((:map eglot-mode-map
-                         ("C-c e r" . eglot-rename)
-                         ("C-c e a" . eglot-code-actions)
-                         ("C-c e f" . eglot-format)))
-                 )
-
-
-
-                 (use-package company-irony
-                   :ensure  t
-                   :config
-                   (add-to-list 'company-backends 'company-irony)
-                   )
-
-                 (use-package irony
-                   :demand t
-                   :ensure t 
-                   :config
-                   (add-hook 'c++-mode-hook 'irony-mode)
-                   (add-hook 'c-mode-hook 'irony-mode)
-                   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
-
-                 (use-package irony-eldoc
-                   :ensure t
-                   :config
-                   (add-hook 'irony-mode-hook #'irony-eldoc))
+     ;; eglot
+    (use-package eglot
+      :ensure t
+      :demand t
+      :config
+      ;; Use clangd 21.1.0
+      (add-to-list 'eglot-server-programs
+      '((c++-mode c-mode) "/usr/bin/clangd"))
+      :hook
+      ((c++-mode-hook . eglot-ensure)
+       (c-mode-hook . eglot-ensure))
+      :bind
+      ((:map eglot-mode-map
+             ("C-c e r" . eglot-rename)
+             ("C-c e a" . eglot-code-actions)
+             ("C-c e f" . eglot-format)))
+     )
 
 
-                  (use-package cmake-ide
-                  :demand t
-                  :commands (cmake-ide-compile cmake-ide-setup)
-                  :config
-                  (setq cmake-ide-flags-c++ '("-std=c++17")))
 
-                (use-package cuda-mode
-                  :mode "\\.cu\\'")
+     (use-package company-irony
+       :demand t
+       :ensure  t
+       :config
+       (add-to-list 'company-backends 'company-irony)
+       )
 
+     (use-package irony
+       :demand t
+       :ensure t 
+       :config
+       (add-hook 'c++-mode-hook 'irony-mode)
+       (add-hook 'c-mode-hook 'irony-mode)
+       (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
 
-              ;; Company backend for C headers
-              ;; -----------------------------
-              (use-package company-c-headers
-                :demand t
-                :ensure t
-                :after company 
-                :config
-                (add-to-list 'company-backends 'company-c-headers 'yasnippet )
-                ;; Set system include paths for GCC
-                (setq company-c-headers-path-system
-                      '("/usr/include"
-                        "/usr/local/include"
-                        "/usr/include/c++/11"
-                        "/usr/include/x86_64-linux-gnu/c++/11")))
-
-               
+     (use-package irony-eldoc
+       :ensure t
+       :config
+       (add-hook 'irony-mode-hook #'irony-eldoc))
 
 
-              (use-package cmake-mode
-                :ensure t)
- 
+      (use-package cmake-ide
+      :demand t
+      :commands (cmake-ide-compile cmake-ide-setup)
+      :config
+      (setq cmake-ide-flags-c++ '("-std=c++17")))
+
+    (use-package cuda-mode
+      :mode "\\.cu\\'")
+
+
+  ;; Company backend for C headers
+  ;; -----------------------------
+  (use-package company-c-headers
+    :demand t
+    :ensure t
+    :after company 
+    :config
+    (add-to-list 'company-backends 'company-c-headers 'yasnippet )
+    ;; Set system include paths for GCC
+    (setq company-c-headers-path-system
+          '("/usr/include"
+            "/usr/local/include"
+            "/usr/include/c++/11"
+            "/usr/include/x86_64-linux-gnu/c++/11")))
+
+
+
+
+  (use-package cmake-mode
+    :ensure t)
+
 #+end_src
 
 #+RESULTS:
 
+** ORG MODE
+#+begin_src emacs-lisp
+      (use-package org
+        :mode ("\\.org\\'" . org-mode)
+        :hook (org-mode . (lambda () (org-indent-mode)))
+        :config
+        (setq org-ellipsis " ▾"
+              org-hide-emphasis-markers t)
+        (setq org-M-RET-may-split-line '((default . nil)))
+        (setq org-insert-heading-respect-content t)
+        (setq org-log-done 'time)
+        (setq org-log-into-drawer t)
+
+        (setq org-directory "~/.config/emacs/")
+        (setq org-agenda-files (list org-directory))
+
+       ;; Learn about the ! and more by reading the relevant section of the
+       ;; Org manual.  Evaluate: (info "(org) Tracking TODO state changes")
+       (setq org-todo-keywords
+         '((sequence "TODO(t)" "WAIT(w!)" "|" "CANCEL(c!)" "DONE(d!)"))))
+
+      (use-package org-bullets
+        :after org
+        :hook (org-mode . org-bullets-mode)
+        :custom
+        (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+     (defun my/org-choose-todo ()
+       "Prompt for a TODO state and set it for the current headline."
+       (interactive)
+       (let ((choice (read-char-choice
+                      "Choose TODO state: (t) TODO, (w) WAIT, (c) CANCEL, (d) DONE"
+                      '(?t ?w ?c ?d))))
+         (cond
+          ((eq choice ?t) (org-todo "TODO"))
+          ((eq choice ?w) (org-todo "WAIT"))
+          ((eq choice ?c) (org-todo "CANCEL"))
+          ((eq choice ?d) (org-todo "DONE")))))
+
+  ;; Bind it to a key
+  (global-set-key (kbd "C-c c t") 'my/org-choose-todo)
+
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((python .t)))
+  (setq org-babel-python-command "python3")
+#+end_src
+
+#+RESULTS:
+: python3
 ** Projectile
 #+begin_src  emacs-lisp
   (projectile-mode +1)
