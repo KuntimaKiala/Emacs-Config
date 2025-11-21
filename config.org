@@ -58,15 +58,15 @@
     (windmove-default-keybindings)
 
     ;; Moving between window, better than C-x o
-    ;;(use-package ace-window
+    (use-package ace-window
      ;; :demand t
-      ;;:ensure t
-      ;;:init
-      ;;(progn
-      ;;  (global-set-key [remap other-window] 'ace-window)
-      ;;  (custom-set-faces
-      ;;   '(aw-leading-char-face ((t (:height 5.0 :foreground "#ff6c6b"))))) ;; 
-      ;;  ))
+      :ensure t
+      :init
+      (progn
+        (global-set-key [remap other-window] 'ace-window)
+        (custom-set-faces
+         '(aw-leading-char-face ((t (:height 5.0 :foreground "#ff6c6b"))))) ;; 
+        ))
 
     ;; so swiper can use it
     (use-package counsel
